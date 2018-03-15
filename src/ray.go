@@ -16,13 +16,13 @@ func (r ray) pointAtParam(t float64) vec3 {
 }
 
 // Color returns a color based on what the ray hits.
-func (r ray) color(s *scene, depth int64) vec3 {
+func (r ray) color(s *scene, depth int64, rnd *rand.Rand) vec3 {
 	hr := hitRecord{}
 	if s.hit(r, 0.001, math.MaxFloat64, &hr) {
 		scattered := ray{}
 		attenuation := vec3{}
-		if depth < 50 && hr.mat.scatter(r, &hr, &attenuation, &scattered) {
-			return attenuation.mul(scattered.color(s, depth+1))
+		if depth < 50 && hr.mat.scatter(r, &hr, &attenuation, &scattered, rnd) {
+			return attenuation.mul(scattered.color(s, depth+1, rnd))
 		}
 		return v(0.0, 0.0, 0.0)
 	}
@@ -36,10 +36,10 @@ func (r ray) color(s *scene, depth int64) vec3 {
 	return temp
 }
 
-func randInUnitSphere() vec3 {
-	p := v(rand.Float64(), rand.Float64(), rand.Float64()).mulScalar(2.0).sub(v(1.0, 1.0, 1.0))
+func randInUnitSphere(rnd *rand.Rand) vec3 {
+	p := v(rnd.Float64(), rnd.Float64(), rnd.Float64()).mulScalar(2.0).sub(v(1.0, 1.0, 1.0))
 	for p.lengthSqr() >= 1.0 {
-		p = v(rand.Float64(), rand.Float64(), rand.Float64()).mulScalar(2.0).sub(v(1.0, 1.0, 1.0))
+		p = v(rnd.Float64(), rnd.Float64(), rnd.Float64()).mulScalar(2.0).sub(v(1.0, 1.0, 1.0))
 	}
 
 	return p

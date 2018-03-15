@@ -10,8 +10,9 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"runtime/trace"
+	"runtime/pprof"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/disintegration/imaging"
@@ -19,8 +20,8 @@ import (
 )
 
 var (
-	samples = 75
-	width   = 600
+	samples = 150
+	width   = 1000
 	height  = 500
 	numCPU  = runtime.NumCPU()
 )
@@ -67,28 +68,6 @@ func saveFile(fileName string, img image.Image) error {
 	return fmt.Errorf("file format not supported, use: png, bmp or jpg")
 }
 
-func pixel(x, y int, scn *scene) color.NRGBA {
-	// Starting point for each pixel.
-	col := vec3{0.0, 0.0, 0.0}
-	for i := 0; i < samples; i++ {
-		// Add a bit of randomness, so the background will blend more with the edges of objects.
-		// This will prevent lines from looking jaggy.
-		u := (float64(x) + rand.Float64()) / float64(width)
-		v := (float64(y) + rand.Float64()) / float64(height)
-
-		r := scn.cam.getRay(u, v)
-		col = col.add(r.color(scn, 0))
-	}
-	// Divide by the amount of samples to get the average.
-	col = col.divScalar(float64(samples))
-	return color.NRGBA{
-		uint8(col.x * 255.0),
-		uint8(col.y * 255.0),
-		uint8(col.z * 255.0),
-		255,
-	}
-}
-
 func render(scn *scene) image.Image {
 	fmt.Println("Number of samples:", samples)
 
@@ -96,26 +75,54 @@ func render(scn *scene) image.Image {
 	rect := image.Rect(0, 0, width, height)
 	rgba := image.NewNRGBA(rect)
 
+	var w sync.WaitGroup
+	w.Add(height)
+
 	// Loop through each pixel from left to write. cx and cy being the current x and y respectively.
 	for cy := 0; cy < height; cy++ {
-		for cx := 0; cx < width; cx++ {
-			rgba.SetNRGBA(cx, cy, pixel(cx, cy, scn))
-		}
+		go func(cy int) {
+			rnd := rand.New(rand.NewSource(int64(time.Now().Nanosecond())))
+
+			for cx := 0; cx < width; cx++ {
+				// Starting point for each pixel.
+				col := vec3{0.0, 0.0, 0.0}
+				for i := 0; i < samples; i++ {
+					// Add a bit of randomness, so the background will blend more with the edges of objects.
+					// This will prevent lines from looking jaggy.
+					u := (float64(cx) + rnd.Float64()) / float64(width)
+					v := (float64(cy) + rnd.Float64()) / float64(height)
+
+					r := scn.cam.getRay(u, v)
+					col = col.add(r.color(scn, 0, rnd))
+				}
+				// Divide by the amount of samples to get the average.
+				col = col.divScalar(float64(samples))
+				finalCol := color.NRGBA{
+					uint8(col.x * 255.0),
+					uint8(col.y * 255.0),
+					uint8(col.z * 255.0),
+					255,
+				}
+				rgba.SetNRGBA(cx, cy, finalCol)
+			}
+			w.Done()
+		}(cy)
 	}
+	w.Wait()
 	return rgba
 }
 
 func main() {
 	// Creates a trace file with CPU usage and stuff.
-	trcName, err := filepath.Abs("../trace.out")
+	trcName, err := filepath.Abs("../pprof.out")
 	check(err)
 
-	trcFile, err := os.Create(trcName)
+	profFile, err := os.Create(trcName)
 	check(err)
-	err = trace.Start(trcFile)
+	err = pprof.StartCPUProfile(profFile)
 	check(err)
-	defer trcFile.Close()
-	defer trace.Stop()
+	defer profFile.Close()
+	defer pprof.StopCPUProfile()
 
 	// Let Go use all the power the PC has.
 	runtime.GOMAXPROCS(numCPU)
@@ -136,13 +143,13 @@ func main() {
 	scn := scene{cam(v(0.0, 0.0, 1.0), v(0.0, 0.0, -1.0), 75.0, float64(width)/float64(height)), objList}
 
 	// Get the current time, use this to get the elapsed time later.
-	startTime := time.Now()
+	startTimeGo := time.Now()
 
 	img := render(&scn)
 
 	// Print how long it took to raycast.
-	elapsed := time.Since(startTime)
-	fmt.Println("Time spent raycasting:", elapsed.Seconds(), "s")
+	elapsedGo := time.Since(startTimeGo)
+	fmt.Println("Time spent raycasting:", elapsedGo.Seconds(), "s")
 
 	// Flip the image because we want 0, 0 to be the bottom left.
 	img = imaging.FlipV(img)
