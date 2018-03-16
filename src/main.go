@@ -145,7 +145,7 @@ func main() {
 	}
 
 	// Create a scene, containing a camera and a list of objects to render.
-	scn := scene{cam(v(0.0, 0.0, 1.0), v(0.0, 0.0, -1.0), 75.0, float64(width)/float64(height), 0.1, 1.75),
+	scn := scene{cam(v(0.0, 0.0, 1.0), v(0.0, 0.0, -1.0), 75.0, float64(width)/float64(height), 0.0, 1.75),
 		objList}
 
 	// Get the current time, use this to get the elapsed time later.

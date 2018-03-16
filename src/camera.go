@@ -32,6 +32,16 @@ func cam(lookFrom, lookAt vec3, fov, aspect, aperture, focusDist float64) *camer
 }
 
 func (c *camera) getRay(s, t float64, rnd *rand.Rand) ray {
+	// Better performance, because there are no random numbers needed.
+	// Even if we would calculate them, we would multiply by zero, so this is useless.
+	if c.lensRadius == 0.0 {
+		return ray{
+			c.origin,
+			c.lowerLeft.add(c.hor.mulScalar(s).add(c.vert.mulScalar(t))).sub(c.origin),
+		}
+	}
+
+	// Add blur, when there is a higher radius.
 	rd := randInDisk(rnd).mulScalar(c.lensRadius)
 	offset := c.u.mulScalar(rd.x).add(c.v.mulScalar(rd.y))
 
