@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"runtime/pprof"
+	"runtime/trace"
 	"strings"
 	"sync"
 	"time"
@@ -75,13 +75,16 @@ func render(scn *scene) image.Image {
 	rect := image.Rect(0, 0, width, height)
 	rgba := image.NewNRGBA(rect)
 
+	// Create goroutines for each row.
 	var w sync.WaitGroup
 	w.Add(height)
 
 	// Loop through each pixel from left to write. cx and cy being the current x and y respectively.
 	for cy := 0; cy < height; cy++ {
 		go func(cy int) {
-			rnd := rand.New(rand.NewSource(int64(time.Now().Nanosecond())))
+			// Create a rand.Rand interface for each goroutine to prevent locking and unlocking.
+			// Give it a seed by generating a random number, time can be used but this gave a weird effect.
+			rnd := rand.New(rand.NewSource(rand.Int63()))
 
 			for cx := 0; cx < width; cx++ {
 				// Starting point for each pixel.
@@ -89,10 +92,10 @@ func render(scn *scene) image.Image {
 				for i := 0; i < samples; i++ {
 					// Add a bit of randomness, so the background will blend more with the edges of objects.
 					// This will prevent lines from looking jaggy.
-					u := (float64(cx) + rnd.Float64()) / float64(width)
-					v := (float64(cy) + rnd.Float64()) / float64(height)
+					s := (float64(cx) + rnd.Float64()) / float64(width)
+					t := (float64(cy) + rnd.Float64()) / float64(height)
 
-					r := scn.cam.getRay(u, v)
+					r := scn.cam.getRay(s, t, rnd)
 					col = col.add(r.color(scn, 0, rnd))
 				}
 				// Divide by the amount of samples to get the average.
@@ -114,18 +117,20 @@ func render(scn *scene) image.Image {
 
 func main() {
 	// Creates a trace file with CPU usage and stuff.
-	trcName, err := filepath.Abs("../pprof.out")
+	trcName, err := filepath.Abs("../trace.out")
+	check(err)
+	trcFile, err := os.Create(trcName)
 	check(err)
 
-	profFile, err := os.Create(trcName)
+	// Start tracing.
+	err = trace.Start(trcFile)
 	check(err)
-	err = pprof.StartCPUProfile(profFile)
-	check(err)
-	defer profFile.Close()
-	defer pprof.StopCPUProfile()
 
-	// Let Go use all the power the PC has.
-	runtime.GOMAXPROCS(numCPU)
+	// Close everything add the end of the program.
+	defer trcFile.Close()
+	defer trace.Stop()
+
+	// Let the user know how many threads it is using.
 	fmt.Println("Number of threads available:", numCPU)
 
 	// Image dimensions
@@ -133,14 +138,15 @@ func main() {
 	fmt.Println("Image height:", height)
 
 	// List of objects.
-	objList := []object{
-		object{shapeCircle, 0.5, v(-0.25, 0.0, -1.0), met(1.0, 0.0, 1.0, 0.0)},
-		object{shapeCircle, 0.5, v(0.25, 0.0, -2.2), met(0.0, 1.0, 1.0, 0.2)},
-		object{shapeCircle, 100.0, v(0.0, -100.5, -1.0), dif(0.5, 0.5, 0.5)},
+	objList := []*object{
+		&object{shapeCircle, 0.5, v(-0.25, 0.0, -1.0), met(1.0, 0.0, 1.0, 0.0)},
+		&object{shapeCircle, 0.5, v(0.25, 0.0, -2.2), met(0.0, 1.0, 1.0, 0.2)},
+		&object{shapeCircle, 100.0, v(0.0, -100.5, -1.0), dif(0.5, 0.5, 0.5)},
 	}
 
 	// Create a scene, containing a camera and a list of objects to render.
-	scn := scene{cam(v(0.0, 0.0, 1.0), v(0.0, 0.0, -1.0), 75.0, float64(width)/float64(height)), objList}
+	scn := scene{cam(v(0.0, 0.0, 1.0), v(0.0, 0.0, -1.0), 75.0, float64(width)/float64(height), 0.1, 1.75),
+		objList}
 
 	// Get the current time, use this to get the elapsed time later.
 	startTimeGo := time.Now()

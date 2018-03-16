@@ -11,17 +11,17 @@ type ray struct {
 }
 
 // PointAtParam gets a vec3 position at a certain distance across the line.
-func (r ray) pointAtParam(t float64) vec3 {
+func (r *ray) pointAtParam(t float64) vec3 {
 	return r.origin.add(r.dir.mulScalar(t))
 }
 
 // Color returns a color based on what the ray hits.
-func (r ray) color(s *scene, depth int64, rnd *rand.Rand) vec3 {
+func (r *ray) color(s *scene, depth int64, rnd *rand.Rand) vec3 {
 	hr := hitRecord{}
-	if s.hit(r, 0.001, math.MaxFloat64, &hr) {
+	if s.hit(*r, 0.001, math.MaxFloat64, &hr) {
 		scattered := ray{}
 		attenuation := vec3{}
-		if depth < 50 && hr.mat.scatter(r, &hr, &attenuation, &scattered, rnd) {
+		if depth < 50 && hr.mat.scatter(*r, &hr, &attenuation, &scattered, rnd) {
 			return attenuation.mul(scattered.color(s, depth+1, rnd))
 		}
 		return v(0.0, 0.0, 0.0)

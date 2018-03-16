@@ -7,7 +7,7 @@ import (
 type hitRecord struct {
 	t         float64
 	p, normal vec3
-	mat       material
+	mat       *material
 }
 
 // Use these to differentiate the different shapes of objects.
@@ -20,10 +20,10 @@ type object struct {
 	shape  uint8
 	radius float64
 	center vec3
-	mat    material
+	mat    *material
 }
 
-func (o object) hit(r ray, tmin float64, tmax float64, hr *hitRecord) bool {
+func (o *object) hit(r ray, tmin float64, tmax float64, hr *hitRecord) bool {
 	// Different implementations for different shapes.
 	switch o.shape {
 	// In case it's a circle, the only one we have right now.

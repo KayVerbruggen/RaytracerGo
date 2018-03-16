@@ -8,7 +8,7 @@ type material struct {
 	fuzz    float64
 }
 
-func (m material) scatter(rIn ray, hr *hitRecord, atten *vec3, rOut *ray, rnd *rand.Rand) bool {
+func (m* material) scatter(rIn ray, hr *hitRecord, atten *vec3, rOut *ray, rnd *rand.Rand) bool {
 	// Difference between diffuse and metallic materials.
 	if m.diffuse {
 		target := hr.p.add(hr.normal).add(randInUnitSphere(rnd))
@@ -31,10 +31,10 @@ func (m material) scatter(rIn ray, hr *hitRecord, atten *vec3, rOut *ray, rnd *r
 	return dot(rOut.dir, hr.normal) > 0.0
 }
 
-func dif(r, g, b float64) material {
-	return material{true, v(r, g, b), 0.0}
+func dif(r, g, b float64) *material {
+	return &material{true, v(r, g, b), 0.0}
 }
 
-func met(r, g, b, f float64) material {
-	return material{false, v(r, g, b), f}
+func met(r, g, b, f float64) *material {
+	return &material{false, v(r, g, b), f}
 }

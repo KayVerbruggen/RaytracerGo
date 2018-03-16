@@ -1,11 +1,12 @@
 package main
 
+// Scenes can be rendered, they contain a list of objects and a camera.
 type scene struct {
-	cam     camera
-	objects []object
+	cam     *camera
+	objects []*object
 }
 
-func (s scene) hit(r ray, tmin float64, tmax float64, hr *hitRecord) bool {
+func (s *scene) hit(r ray, tmin float64, tmax float64, hr *hitRecord) bool {
 	hitAny := false       // We have't hit anything.
 	closestSoFar := tmax  // We haven't hit anything, so there's no closest.
 	tempHr := hitRecord{} // Create an empty hit record.
