@@ -111,7 +111,3 @@ func cross(v1 vec3, v2 vec3) vec3 {
 		z: v1.x*v2.y - v1.y*v2.x,
 	}
 }
-
-func reflect(v vec3, n vec3) vec3 {
-	return v.sub(n.mulScalar(2*dot(v, n)))
-}

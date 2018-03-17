@@ -139,13 +139,19 @@ func main() {
 
 	// List of objects.
 	objList := []*object{
-		&object{shapeCircle, 0.5, v(-0.25, 0.0, -1.0), met(1.0, 0.0, 1.0, 0.0)},
-		&object{shapeCircle, 0.5, v(0.25, 0.0, -2.2), met(0.0, 1.0, 1.0, 0.2)},
-		&object{shapeCircle, 100.0, v(0.0, -100.5, -1.0), dif(0.5, 0.5, 0.5)},
+		// Blue matte ball in the middle
+		&object{shapeCircle, 0.5, v(0.0, 0.0, -1.0), dif(0.0, 0.2, 0.5)},
+		// Gold metal ball on the right
+		&object{shapeCircle, 0.5, v(1.0, 0.0, -1.0), met(0.8, 0.6, 0.2, 0.0)},
+		// By having on glass on the outside and one with an negative size inside of it, the reflection will change.
+		&object{shapeCircle, 0.5, v(-1.0, 0.0, -1.0), glass(1.5)},
+		&object{shapeCircle, -0.45, v(-1.0, 0.0, -1.0), glass(1.5)},
+		// The world
+		&object{shapeCircle, 100.0, v(0.0, -100.5, -1.0), dif(0.8, 0.8, 0.0)},
 	}
 
 	// Create a scene, containing a camera and a list of objects to render.
-	scn := scene{cam(v(0.0, 0.0, 1.0), v(0.0, 0.0, -1.0), 75.0, float64(width)/float64(height), 0.0, 1.75),
+	scn := scene{cam(v(0.0, 0.0, 1.0), v(0.0, 0.0, -1.0), 75.0, float64(width)/float64(height), 0.0),
 		objList}
 
 	// Get the current time, use this to get the elapsed time later.

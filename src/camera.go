@@ -11,12 +11,13 @@ type camera struct {
 	lensRadius                   float64
 }
 
-func cam(lookFrom, lookAt vec3, fov, aspect, aperture, focusDist float64) *camera {
+func cam(lookFrom, lookAt vec3, fov, aspect, aperture float64) *camera {
 	c := &camera{}
 	c.lensRadius = aperture / 2.0
 	theta := fov * math.Pi / 180.0
 	halfHeight := math.Tan(theta / 2.0)
 	halfWidth := aspect * halfHeight
+	focusDist := lookFrom.sub(lookAt).length()
 
 	// This is used to calculate the direction of the camera.
 	c.w = lookFrom.sub(lookAt).normalize() // The difference from the target and position, will give the direction.
