@@ -20,9 +20,9 @@ import (
 )
 
 var (
-	samples = 150
-	width   = 1000
-	height  = 500
+	samples = 500
+	width   = 2560
+	height  = 1440
 	numCPU  = runtime.NumCPU()
 )
 
@@ -95,7 +95,7 @@ func render(scn *scene) image.Image {
 					s := (float64(cx) + rnd.Float64()) / float64(width)
 					t := (float64(cy) + rnd.Float64()) / float64(height)
 
-					r := scn.cam.getRay(s, t, rnd)
+					r := scn.cam.ray(s, t, rnd)
 					col = col.add(r.color(scn, 0, rnd))
 				}
 				// Divide by the amount of samples to get the average.
@@ -116,6 +116,12 @@ func render(scn *scene) image.Image {
 }
 
 func main() {
+	// Check if we have enough arguments, if not tell the user he should pass a file name.
+	if len(os.Args) < 2 {
+		err := fmt.Errorf("not enough arguments, usage:\n render test.png")
+		panic(err)
+	}
+
 	// Creates a trace file with CPU usage and stuff.
 	trcName, err := filepath.Abs("../trace.out")
 	check(err)
@@ -136,28 +142,21 @@ func main() {
 	// Image dimensions
 	fmt.Println("Image width:", width)
 	fmt.Println("Image height:", height)
+	/*
+	   // List of objects.
+	   objList := []*object{
+	   	sphere(1000.0, v(0.0, -1000.0, 0.0), dif(0.5, 0.5, 0.5)),
+	   	movingSphere(1.0, v(0.0, 1.0, 0.0), v(0.0, 1+0.5*rand.Float64(), 0.0), 0.0, 1.0, dif(1.0, 0.2, 0.2)),
+	   }
 
-	// List of objects.
-	objList := []*object{
-		// Blue matte ball in the middle
-		&object{shapeCircle, 0.5, v(0.0, 0.0, -1.0), dif(0.0, 0.2, 0.5)},
-		// Gold metal ball on the right
-		&object{shapeCircle, 0.5, v(1.0, 0.0, -1.0), met(0.8, 0.6, 0.2, 0.0)},
-		// By having on glass on the outside and one with an negative size inside of it, the reflection will change.
-		&object{shapeCircle, 0.5, v(-1.0, 0.0, -1.0), glass(1.5)},
-		&object{shapeCircle, -0.45, v(-1.0, 0.0, -1.0), glass(1.5)},
-		// The world
-		&object{shapeCircle, 100.0, v(0.0, -100.5, -1.0), dif(0.8, 0.8, 0.0)},
-	}
+	   // Create a scene, containing a camera and a list of objects to render.
+	   scn := scene{cam(v(6.0, 2.0, 2.5), v(0.0, 1.0, -1.0), 60.0, 0.1, 1.0), objList}
 
-	// Create a scene, containing a camera and a list of objects to render.
-	scn := scene{cam(v(0.0, 0.0, 1.0), v(0.0, 0.0, -1.0), 75.0, float64(width)/float64(height), 0.0),
-		objList}
-
+	*/
 	// Get the current time, use this to get the elapsed time later.
 	startTimeGo := time.Now()
 
-	img := render(&scn)
+	img := render(randScene())
 
 	// Print how long it took to raycast.
 	elapsedGo := time.Since(startTimeGo)
@@ -165,12 +164,6 @@ func main() {
 
 	// Flip the image because we want 0, 0 to be the bottom left.
 	img = imaging.FlipV(img)
-
-	// Check if we have enough arguments, if not tell the user he should pass a file name.
-	if len(os.Args) < 2 {
-		err := fmt.Errorf("not enough arguments, usage:\n render test.png")
-		check(err)
-	}
 
 	// Save the file to the destination given in the argument.
 	err = saveFile(os.Args[1], img)

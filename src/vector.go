@@ -1,14 +1,28 @@
 package main
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 // vec3 uses float64.
 type vec3 struct {
 	x, y, z float64
 }
 
-func v(x, y, z float64) vec3 {
+func vec(x, y, z float64) vec3 {
 	return vec3{x, y, z}
+}
+
+func (v vec3) get(index int) float64 {
+	if index == 0 {
+		return v.x
+	} else if index == 1 {
+		return v.y
+	} else if index == 2 {
+		return v.z
+	}
+	panic(fmt.Errorf("index for vec3 must be 0, 1 or 2"))
 }
 
 // Addvec3 is used for adding two vec3's
@@ -105,7 +119,7 @@ func dot(v1 vec3, v2 vec3) float64 {
 
 // Cross also does something with vectors.
 func cross(v1 vec3, v2 vec3) vec3 {
-	return vec3 {
+	return vec3{
 		x: v1.y*v2.z - v1.z*v2.y,
 		y: -(v1.x*v2.z - v1.z*v2.x),
 		z: v1.x*v2.y - v1.y*v2.x,
