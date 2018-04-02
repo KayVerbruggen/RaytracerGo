@@ -1,8 +1,14 @@
 package main
 
 import (
+	"image"
+	"image/draw"
+	_ "image/jpeg"
+	_ "image/png"
 	"math"
 	"math/rand"
+	"os"
+	"path/filepath"
 )
 
 type material struct {
@@ -52,7 +58,7 @@ func (m *material) scatter(rIn ray, hr *hitRecord, atten *vec3, rOut *ray, rnd *
 	case matDiffuse:
 		target := hr.p.add(hr.normal).add(randInUnitSphere(rnd))
 		*rOut = ray{hr.p, target.sub(hr.p), rIn.time}
-		*atten = m.tex.value(0.0, 0.0, hr.p)
+		*atten = m.tex.value(hr.u, hr.v, hr.p)
 		return true
 
 	case matMetal:
@@ -65,7 +71,7 @@ func (m *material) scatter(rIn ray, hr *hitRecord, atten *vec3, rOut *ray, rnd *
 		} else {
 			*rOut = ray{hr.p, reflected.add(randInUnitSphere(rnd).subScalar(m.fuzz)), rIn.time}
 		}
-		*atten = m.tex.value(0.0, 0.0, hr.p)
+		*atten = m.tex.value(hr.u, hr.v, hr.p)
 
 		return dot(rOut.dir, hr.normal) > 0.0
 
@@ -172,7 +178,7 @@ func perlTex(s float64) *noiseTex {
 }
 
 func (t *noiseTex) value(u, v float64, p vec3) vec3 {
-	return vec(1.0, 1.0, 1.0).mulScalar(0.5).mulScalar(1.0 + math.Sin(t.scale * p.z + 10*t.noise.turb(p)))
+	return vec(1.0, 1.0, 1.0).mulScalar(0.5).mulScalar(1.0 + math.Sin(t.scale*p.z+10*t.noise.turb(p)))
 }
 
 // Perlin noise is blurred white noise.
@@ -203,7 +209,7 @@ func (p *perlin) noise(perm vec3) float64 {
 	for di := 0; di < 2; di++ {
 		for dj := 0; dj < 2; dj++ {
 			for dk := 0; dk < 2; dk++ {
-				c[di][dj][dk] = p.ranvec[p.permX[(i+di) & 255] ^ p.permY[(j+dj) & 255] ^ p.permZ[(k+dk) & 255]]
+				c[di][dj][dk] = p.ranvec[p.permX[(i+di)&255]^p.permY[(j+dj)&255]^p.permZ[(k+dk)&255]]
 			}
 		}
 	}
@@ -216,7 +222,7 @@ func (p *perlin) turb(perm vec3) float64 {
 	temp := perm
 	weight := 1.0
 	for i := 0; i < 7; i++ {
-		accum += weight*p.noise(temp)
+		accum += weight * p.noise(temp)
 		weight *= 0.5
 		temp = temp.mulScalar(2.0)
 	}
@@ -271,4 +277,49 @@ func perlinGen() [256]vec3 {
 	}
 
 	return p
+}
+
+type imageTex struct {
+	nx, ny int
+	data   *image.RGBA
+}
+
+func createImageTex(name string) *imageTex {
+	name, err := filepath.Abs(name)
+	check(err)
+
+	file, err := os.Open(name)
+	check(err)
+	defer file.Close()
+
+	img, _, err := image.Decode(file)
+	check(err)
+	data := image.NewRGBA(img.Bounds())
+	draw.Draw(data, data.Bounds(), img, image.Point{0, 0}, draw.Src)
+
+	return &imageTex{data.Rect.Size().X, data.Rect.Size().Y, data}
+}
+
+func (t *imageTex) value(u, v float64, p vec3) vec3 {
+	i := int(u * float64(t.nx))
+	j := int((1.0-v)*float64(t.ny) - 0.001)
+	if i < 0 {
+		i = 0
+	}
+	if j < 0 {
+		j = 0
+	}
+	if i > t.nx-1 {
+		i = t.nx - 1
+	}
+	if j > t.ny-1 {
+		j = t.ny - 1
+	}
+
+	col := t.data.RGBAAt(i, j)
+
+	r := float64(col.R) / 255.0
+	g := float64(col.G) / 255.0
+	b := float64(col.B) / 255.0
+	return vec(r, g, b)
 }

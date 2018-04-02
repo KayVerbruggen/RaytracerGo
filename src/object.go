@@ -6,6 +6,7 @@ import (
 
 type hitRecord struct {
 	t         float64
+	u, v      float64
 	p, normal vec3
 	mat       *material
 }
@@ -14,7 +15,6 @@ type hitRecord struct {
 const (
 	shapeCircle uint8 = 0
 )
-
 
 // Objects can be hit by rays.
 type object struct {
@@ -40,7 +40,7 @@ func movingSphere(radius float64, center0, center1 vec3, time0, time1 float64, m
 func (o *object) hit(r ray, tmin float64, tmax float64, hr *hitRecord) bool {
 	// Different implementations for different shapes.
 	switch o.shape {
-		// In case it's a circle, the only one we have right now.
+	// In case it's a circle, the only one we have right now.
 	case shapeCircle:
 		// Variables that are necessary for the ABC formula.
 		oc := r.origin.sub(o.center(r.time))
@@ -59,6 +59,7 @@ func (o *object) hit(r ray, tmin float64, tmax float64, hr *hitRecord) bool {
 				hr.p = r.point(hr.t)
 				hr.normal = hr.p.sub(o.center(r.time)).divScalar(o.radius)
 				hr.mat = o.mat
+				hr.u, hr.v = o.uv((hr.p.sub(o.center(r.time))).divScalar(o.radius))
 
 				return true
 			}
@@ -70,6 +71,7 @@ func (o *object) hit(r ray, tmin float64, tmax float64, hr *hitRecord) bool {
 				hr.p = r.point(hr.t)
 				hr.normal = hr.p.sub(o.center(r.time)).divScalar(o.radius)
 				hr.mat = o.mat
+				hr.u, hr.v = o.uv((hr.p.sub(o.center(r.time))).divScalar(o.radius))
 
 				return true
 			}
@@ -86,6 +88,16 @@ func (o *object) hit(r ray, tmin float64, tmax float64, hr *hitRecord) bool {
 
 func (o *object) center(t float64) vec3 {
 	return o.center0.add(o.center1.sub(o.center0).mulScalar((t - o.time0) / (o.time1 - o.time0)))
+}
+
+// Returns the UV coordinates for image textures.
+func (o *object) uv(p vec3) (float64, float64) {
+	phi := math.Atan2(p.z, p.x)
+	theta := math.Asin(p.y)
+	u := 1 - (phi+math.Pi)/(2*math.Pi)
+	v := (theta + math.Pi/2) / math.Pi
+
+	return u, v
 }
 
 // Create the bounding box for an object.

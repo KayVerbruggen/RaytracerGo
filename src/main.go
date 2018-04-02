@@ -20,9 +20,9 @@ import (
 )
 
 var (
-	samples = 500
-	width   = 2560
-	height  = 1440
+	samples = 100
+	width   = 1000
+	height  = 500
 	numCPU  = runtime.NumCPU()
 )
 

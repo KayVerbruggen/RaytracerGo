@@ -56,17 +56,18 @@ func (s *scene) boundingBox(t0, t1 float64, box *aabb) bool {
 func randScene() *scene {
 	checkerMat := dif(checker(vec(0.2, 0.3, 0.1), vec(0.9, 0.9, 0.9)))
 	marbleMat := dif(perlTex(4.0))
+	texMat := dif(createImageTex("../res/texture.png"))
 
 	// List of objects.
 	objList := []*object{
 		sphere(1000.0, vec(0.0, -1000, 0.0), checkerMat),
 		sphere(1.0, vec(0.0, 1.0, 0.0), marbleMat),
-		sphere(1.0, vec(-4.0, 1.0, 0.0), glass(1.5)),
-		sphere(1.0, vec(4.0, 1.0, 0.0), met(col(0.7, 0.6, 0.5), 0.0)),
+		sphere(1.0, vec(-4.0, 1.0, 0.0), met(col(0.7, 0.6, 0.5), 0.0)),
+		sphere(1.0, vec(4.0, 1.0, 0.0), texMat),
 	}
 
-	for a := -5; a < 5; a++ {
-		for b := -5; b < 5; b++ {
+	for a := -2; a < 2; a++ {
+		for b := -2; b < 2; b++ {
 			chooseMat := rand.Float64()
 			center := vec(float64(a)+0.9*rand.Float64(), 0.2, float64(b)+0.9*rand.Float64())
 
